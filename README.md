@@ -359,34 +359,12 @@ LIMIT 15
 
 **Tableau Trello - IPSSI Spotify NoSQL**
 
-```mermaid
-kanban
-    À faire
-        🚀 Optimisation requêtes complexes
-        📖 Documentation API complète
-        🎨 Amélioration UI/UX
-    
-    En cours  
-        📊 Dashboard analytics avancés
-        🔍 Filtres de recherche étendus
-        📱 README
-        ⚡ Cache optimisé
-    
-    Terminé
-        ✅ Configuration Neo4j Aura
-        ✅ Import dataset ultra-rapide
-        ✅ Backend CRUD complet
-        ✅ Interface Streamlit
-        ✅ Pages de recherche/modification
-        ✅ Analytics de base
-        ✅ Documentation README
-```
 
 ### Répartition des tâches équipe
 
 | 👤 Membre | 🎯 Responsabilités |
 |-----------|-------------------|
-| **Matis** | Configuration Neo4j Aura, Scripts d'import optimisés |
+| **Matis** | Configuration Neo4j Aura, Scripts d'import Cypher, Diaporama |
 | **Julien** | Interface Streamlit, Pages CRUD, UI/UX, Documentation |
 | **Carl** | Backend, Requêtes Cypher, Analytics, Notebook Jupyter |
 
@@ -398,10 +376,10 @@ kanban
 ```mermaid
 pie title Distribution des genres principaux dans le dataset
     "Indie Pop" : 1000
-    "Industrial : 1000
+    "Industrial" : 1000
     "Electronic" : 1000
     "Emo" : 1000
-    "Accoustic" : 1000
+    "Acoustic" : 1000
     "Garage" : 1000
     "Disco" : 1000
     "Country" : 1000
@@ -409,23 +387,12 @@ pie title Distribution des genres principaux dans le dataset
     "Funk" : 1000
 ```
 
-#### 🎵 Caractéristiques audio moyennes par genre
-
-```mermaid
-xychart-beta
-    title "Énergie vs Danceability par genre"
-    x-axis ["Pop", "Rock", "Electronic", "Hip-Hop", "Jazz", "Classical"]
-    y-axis "Score (0-1)" 0 --> 1
-    line [0.7, 0.8, 0.75, 0.65, 0.4, 0.3]
-    line [0.65, 0.5, 0.8, 0.75, 0.45, 0.25]
-```
-
 #### 🏆 Indicateurs de performance technique
 
 | 🔧 Métrique | 📈 Valeur | 💡 Description |
 |-------------|-----------|----------------|
 | **Chansons importées** | ~114,000 | Dataset Spotify complet |
-| **Performance import** | 2,500 lignes/sec | Import ultra-optimisé UNWIND |
+| **Performance import** | 2,500 lignes/sec | Import optimisé avec UNWIND |
 | **Nœuds Neo4j** | ~180,000 | Tracks + Artists + Albums + Genres |
 | **Relations créées** | ~350,000 | PERFORMS, BELONGS_TO, HAS_GENRE, etc. |
 | **Pages Streamlit** | 5 | Dashboard, Search, CRUD, Analytics |
@@ -435,7 +402,7 @@ xychart-beta
 
 ```mermaid
 graph LR
-    A[📊 Dataset CSV<br/>114k chansons] --> B[⚡ Import Neo4j<br/>Ultra-rapide]
+    A[📊 Dataset CSV<br/>114k chansons] --> B[⚡ Import Neo4j<br/>Optimisé]
     B --> C[🗄️ Graph Database<br/>Neo4j Aura]
     C --> D[🌐 Interface Web<br/>Streamlit]
     C --> E[📈 Analytics<br/>Cypher Queries]
@@ -459,38 +426,22 @@ graph LR
 ✅ **Import massif performant** avec contraintes et index  
 ✅ **Interface CRUD complète** pour gestion des données  
 ✅ **Recherche multicritères** avancée  
-✅ **Analytics temps réel** avec visualisations  
-✅ **Relations graphe complexes** optimisées  
+✅ **Analytics temps réel** avec visualisations sur l'interface de Neo4j
 ✅ **Architecture scalable** Neo4j + Streamlit  
 
 ### Technologies validées
 
-- **Neo4j Aura** : Base de données graphe cloud haute performance
+- **Neo4j Aura** : Base de données graphe cloud
 - **Python Streamlit** : Interface web interactive rapide  
 - **Requêtes Cypher** : Analyse de graphe native et puissante
-- **Plotly** : Visualisations interactives professionnelles
-- **Architecture modulaire** : Séparation backend/frontend claire
+- **Plotly** : Visualisations interactives
+- **Architecture modulaire** : Séparation backend/frontend
 
----
-
-## 📝 Notes techniques importantes
-
-⚠️ **Prérequis essentiels :**
-- Connexion Neo4j Aura configurée dans `.env`
-- Python 3.8+ avec packages requirements.txt
-- Dataset CSV disponible dans `/data/dataset.csv`
-
-🔧 **Configuration recommandée :**
-- L'application Streamlit sera accessible sur `http://localhost:8501`
-- L'import peut prendre 3-5 minutes selon la connexion
-- Cache Streamlit activé pour performances optimales
-
-🚀 **Déploiement possible sur :**
+🚀 **Déploiement possible sur (à faire à l'avenir) :**
 - Streamlit Cloud (gratuit)
 - Heroku avec Neo4j Aura
 - Docker containerisé
 
 ---
 
-*📚 Projet réalisé dans le cadre du cours NoSQL - IPSSI 2025  
-🎯 Démonstration d'architecture Neo4j + Streamlit pour analytics musicaux*
+*Projet réalisé dans le cadre du cours NoSQL - IPSSI 25/09/2025*
