@@ -356,8 +356,11 @@ LIMIT 15
 ## 📋 Gestion de projet
 
 ### Lien Trello - Suivi des tâches
+https://trello.com/invite/b/68d4f9510c9ba83917097906/ATTIca98cbdfe411a955fa73e9360519590d352738DE/nosql
 
 **Tableau Trello - IPSSI Spotify NoSQL**
+
+<img width="2065" height="1158" alt="image" src="https://github.com/user-attachments/assets/ba0e7c0e-7849-4025-ab68-1ffec9ece32c" />
 
 
 ### Répartition des tâches équipe
