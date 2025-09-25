@@ -3,15 +3,15 @@
 Projet d'analyse de données musicales Spotify utilisant Neo4j comme base de données graphe et Streamlit pour l'interface web interactive avec fonctionnalités CRUD complètes.
 
 ## 📋 Table des matières
-- [Architecture du projet](#architecture-du-projet)
-- [Configuration requise](#configuration-requise)
-- [Installation et configuration](#installation-et-configuration)
-- [Lancement des scripts](#lancement-des-scripts)
-- [Structure des données Neo4j](#structure-des-données-neo4j)
-- [Fonctionnalités de l'application](#fonctionnalités-de-lapplication)
-- [Analyses et requêtes](#analyses-et-requêtes)
-- [Gestion de projet](#gestion-de-projet)
-- [Présentation des résultats](#présentation-des-résultats)
+- [🏗️ Architecture du projet](#️-architecture-du-projet)
+- [⚙️ Configuration requise](#️-configuration-requise)
+- [🚀 Installation et configuration](#-installation-et-configuration)
+- [🛠️ Lancement des scripts](#️-lancement-des-scripts)
+- [📊 Structure des données Neo4j](#-structure-des-données-neo4j)
+- [🌐 Fonctionnalités de l'application Streamlit](#-fonctionnalités-de-lapplication-streamlit)
+- [📈 Analyses et requêtes Cypher](#-analyses-et-requêtes-cypher)
+- [📋 Gestion de projet](#-gestion-de-projet)
+- [🎯 Présentation des résultats](#-présentation-des-résultats)
 
 ## 🏗️ Architecture du projet
 
@@ -62,11 +62,11 @@ graph TB
     Backend --> Edit
     Backend --> Upload
     
-    classDef dataClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef scriptClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef dbClass fill:#fff3e0,stroke:#e65100,stroke-width:3px
-    classDef webClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef analysisClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef dataClass fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#ffffff
+    classDef scriptClass fill:#581c87,stroke:#a855f7,stroke-width:2px,color:#ffffff
+    classDef dbClass fill:#ea580c,stroke:#fb923c,stroke-width:3px,color:#ffffff
+    classDef webClass fill:#166534,stroke:#4ade80,stroke-width:2px,color:#ffffff
+    classDef analysisClass fill:#be185d,stroke:#f472b6,stroke-width:2px,color:#ffffff
     
     class CSV,Env dataClass
     class Test,Import,Queries scriptClass
@@ -219,6 +219,7 @@ CREATE INDEX track_popularity FOR (t:Track) ON (t.popularity);
 ### Interface utilisateur complète
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#3b82f6','primaryTextColor':'#ffffff','primaryBorderColor':'#1d4ed8','secondaryColor':'#10b981','secondaryTextColor':'#ffffff','tertiaryColor':'#f59e0b','tertiaryTextColor':'#ffffff','background':'#1f2937','mainBkg':'#374151','secondBkg':'#4b5563','tertiaryBkg':'#6b7280','lineColor':'#ffffff','textColor':'#ffffff','nodeTextColor':'#ffffff'}}}%%
 mindmap
     root((🎵 Spotify Neo4j App))
         🏠 Dashboard Principal
@@ -298,7 +299,7 @@ mindmap
 - `get_popular_songs()` - Top chansons
 - Gestion automatique des **relations complexes**
 
-## Analyses et requêtes Cypher
+## 📈 Analyses et requêtes Cypher
 
 ### Exemples de requêtes Cypher utilisées
 
@@ -356,7 +357,7 @@ LIMIT 15
 ## 📋 Gestion de projet
 
 ### Lien Trello - Suivi des tâches
-https://trello.com/invite/b/68d4f9510c9ba83917097906/ATTIca98cbdfe411a955fa73e9360519590d352738DE/nosql
+https://trello.com/b/oJoqGbOo/nosql
 
 **Tableau Trello - IPSSI Spotify NoSQL**
 
@@ -414,14 +415,14 @@ graph LR
     D --> G[✏️ CRUD<br/>Complet]
     D --> H[📊 Visualisations<br/>Interactives]
     
-    style A fill:#e3f2fd
-    style B fill:#fff3e0
-    style C fill:#e8f5e8
-    style D fill:#f3e5f5
-    style E fill:#fce4ec
-    style F fill:#e1f5fe
-    style G fill:#fff8e1
-    style H fill:#f1f8e9
+    style A fill:#1e3a8a,stroke:#60a5fa,color:#ffffff
+    style B fill:#ea580c,stroke:#fb923c,color:#ffffff
+    style C fill:#166534,stroke:#4ade80,color:#ffffff
+    style D fill:#581c87,stroke:#a855f7,color:#ffffff
+    style E fill:#be185d,stroke:#f472b6,color:#ffffff
+    style F fill:#0f766e,stroke:#5eead4,color:#ffffff
+    style G fill:#b45309,stroke:#fbbf24,color:#ffffff
+    style H fill:#7c2d12,stroke:#fb7185,color:#ffffff
 ```
 
 ### Fonctionnalités démontrées
