@@ -184,42 +184,51 @@ class SpotifyBackend:
     
     def search_songs(self, search_term: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
-        Recherche des chansons par nom, artiste ou album
+        Recherche des chansons par nom, artiste ou album - Version optimisée mémoire
         
         Args:
             search_term: Terme de recherche
-            limit: Nombre maximum de résultats
+            limit: Nombre maximum de résultats (max 25 pour éviter problèmes mémoire)
         
         Returns:
             Liste des chansons trouvées avec leurs détails
         """
+        # Forcer une limite basse pour éviter les problèmes de mémoire
+        safe_limit = min(limit, 25)
+        
         with self.driver.session() as session:
             cypher_query = """
             MATCH (t:Track)
             OPTIONAL MATCH (a:Artist)-[:PERFORMS]->(t)
-            OPTIONAL MATCH (t)-[:BELONGS_TO]->(al:Album)
             OPTIONAL MATCH (t)-[:HAS_GENRE]->(g:Genre)
             
             WHERE toLower(t.name) CONTAINS toLower($search_term)
                OR toLower(a.name) CONTAINS toLower($search_term)
-               OR toLower(al.name) CONTAINS toLower($search_term)
                OR toLower(g.name) CONTAINS toLower($search_term)
             
-            RETURN DISTINCT t,
-                   collect(DISTINCT a.name) as artists,
-                   al.name as album,
-                   g.name as genre
+            WITH t, 
+                 collect(DISTINCT a.name)[..2] as artists_limited,  // Max 2 artistes
+                 g.name as genre
+            
+            RETURN {
+                id: t.id,
+                name: t.name,
+                popularity: t.popularity,
+                energy: t.energy,
+                danceability: t.danceability
+            } as track,
+            artists_limited as artists,
+            genre
             ORDER BY t.popularity DESC
             LIMIT $limit
             """
             
-            result = session.run(cypher_query, search_term=search_term, limit=limit)
+            result = session.run(cypher_query, search_term=search_term, limit=safe_limit)
             
             songs = []
             for record in result:
-                track = dict(record['t'])
-                track['artists'] = record['artists']
-                track['album'] = record['album']
+                track = dict(record['track'])
+                track['artists'] = record['artists'] or []
                 track['genre'] = record['genre']
                 songs.append(track)
             
@@ -253,85 +262,107 @@ class SpotifyBackend:
             return None
     
     def get_all_songs(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-        """Récupère toutes les chansons avec pagination"""
+        """Récupère toutes les chansons avec pagination - Version optimisée mémoire"""
+        # Forcer des limites très basses pour éviter les problèmes de mémoire
+        safe_limit = min(limit, 20)  # Max 20 chansons à la fois
+        
         with self.driver.session() as session:
             query = """
             MATCH (t:Track)
             OPTIONAL MATCH (a:Artist)-[:PERFORMS]->(t)
-            OPTIONAL MATCH (t)-[:BELONGS_TO]->(al:Album)
             OPTIONAL MATCH (t)-[:HAS_GENRE]->(g:Genre)
             
-            RETURN t,
-                   collect(DISTINCT a.name) as artists,
-                   al.name as album,
-                   g.name as genre
+            WITH t, 
+                 collect(DISTINCT a.name)[..2] as artists_limited,  // Max 2 artistes
+                 g.name as genre
+            
+            RETURN {
+                id: t.id,
+                name: t.name,
+                popularity: t.popularity,
+                energy: t.energy,
+                danceability: t.danceability
+            } as track,
+            artists_limited as artists,
+            genre
             ORDER BY t.popularity DESC
             SKIP $offset
             LIMIT $limit
             """
             
-            result = session.run(query, limit=limit, offset=offset)
+            result = session.run(query, limit=safe_limit, offset=offset)
             
             songs = []
             for record in result:
-                track = dict(record['t'])
-                track['artists'] = record['artists']
-                track['album'] = record['album']
+                track = dict(record['track'])
+                track['artists'] = record['artists'] or []
                 track['genre'] = record['genre']
                 songs.append(track)
             
             return songs
     
     def get_songs_by_genre(self, genre: str, limit: int = 50) -> List[Dict[str, Any]]:
-        """Récupère les chansons d'un genre spécifique"""
+        """Récupère les chansons d'un genre spécifique - Version optimisée mémoire"""
+        # Forcer une limite basse pour éviter les problèmes de mémoire
+        safe_limit = min(limit, 30)
+        
         with self.driver.session() as session:
             query = """
             MATCH (g:Genre {name: $genre})<-[:HAS_GENRE]-(t:Track)
             OPTIONAL MATCH (a:Artist)-[:PERFORMS]->(t)
-            OPTIONAL MATCH (t)-[:BELONGS_TO]->(al:Album)
             
-            RETURN t,
-                   collect(DISTINCT a.name) as artists,
-                   al.name as album,
-                   g.name as genre
+            WITH t, collect(DISTINCT a.name)[..2] as artists_limited, g.name as genre
+            
+            RETURN {
+                id: t.id,
+                name: t.name,
+                popularity: t.popularity,
+                energy: t.energy,
+                danceability: t.danceability
+            } as track,
+            artists_limited as artists,
+            genre
             ORDER BY t.popularity DESC
             LIMIT $limit
             """
             
-            result = session.run(query, genre=genre, limit=limit)
+            result = session.run(query, genre=genre, limit=safe_limit)
             
             songs = []
             for record in result:
-                track = dict(record['t'])
-                track['artists'] = record['artists']
-                track['album'] = record['album']
+                track = dict(record['track'])
+                track['artists'] = record['artists'] or []
                 track['genre'] = record['genre']
                 songs.append(track)
             
             return songs
     
-    def get_songs_by_artist(self, artist_name: str) -> List[Dict[str, Any]]:
-        """Récupère toutes les chansons d'un artiste"""
+    def get_songs_by_artist(self, artist_name: str, limit: int = 30) -> List[Dict[str, Any]]:
+        """Récupère les chansons d'un artiste - Version optimisée mémoire"""
         with self.driver.session() as session:
             query = """
             MATCH (a:Artist {name: $artist_name})-[:PERFORMS]->(t:Track)
-            OPTIONAL MATCH (t)-[:BELONGS_TO]->(al:Album)
             OPTIONAL MATCH (t)-[:HAS_GENRE]->(g:Genre)
             
-            RETURN t,
-                   [a.name] as artists,
-                   al.name as album,
-                   g.name as genre
+            RETURN {
+                id: t.id,
+                name: t.name,
+                popularity: t.popularity,
+                energy: t.energy,
+                danceability: t.danceability
+            } as track,
+            [a.name] as artists,
+            g.name as genre
             ORDER BY t.popularity DESC
+            LIMIT $limit
             """
             
-            result = session.run(query, artist_name=artist_name)
+            result = session.run(query, artist_name=artist_name, limit=limit)
             
             songs = []
             for record in result:
-                track = dict(record['t'])
+                track = dict(record['track'])
                 track['artists'] = record['artists']
-                track['album'] = record['album']
                 track['genre'] = record['genre']
                 songs.append(track)
             
@@ -468,53 +499,63 @@ class SpotifyBackend:
     # ==================== ANALYTICS OPERATIONS ====================
     
     def get_genre_statistics(self) -> List[Dict[str, Any]]:
-        """Statistiques par genre (requête GROUP BY)"""
+        """Statistiques par genre (requête GROUP BY) - Version optimisée mémoire"""
         with self.driver.session() as session:
             query = """
             MATCH (g:Genre)<-[:HAS_GENRE]-(t:Track)
-            RETURN g.name as genre,
+            WITH g.name as genre, t
+            RETURN genre,
                    count(t) as track_count,
-                   avg(t.popularity) as avg_popularity,
-                   avg(t.energy) as avg_energy,
-                   avg(t.danceability) as avg_danceability,
-                   avg(t.valence) as avg_valence,
-                   min(t.popularity) as min_popularity,
-                   max(t.popularity) as max_popularity
+                   round(avg(t.popularity), 2) as avg_popularity,
+                   round(avg(t.energy), 2) as avg_energy,
+                   round(avg(t.danceability), 2) as avg_danceability
             ORDER BY track_count DESC
+            LIMIT 15
             """
             
             result = session.run(query)
             return [dict(record) for record in result]
     
     def get_artist_statistics(self) -> List[Dict[str, Any]]:
-        """Statistiques par artiste"""
+        """Statistiques par artiste - Version optimisée mémoire"""
         with self.driver.session() as session:
             query = """
             MATCH (a:Artist)-[:PERFORMS]->(t:Track)
+            WITH a, count(t) as track_count, avg(t.popularity) as avg_popularity
+            WHERE track_count >= 2
             RETURN a.name as artist,
-                   count(t) as track_count,
-                   avg(t.popularity) as avg_popularity,
-                   a.followers as followers
+                   track_count,
+                   round(avg_popularity, 2) as avg_popularity
             ORDER BY track_count DESC
-            LIMIT 50
+            LIMIT 20
             """
             
             result = session.run(query)
             return [dict(record) for record in result]
     
     def get_popular_songs(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """Récupère les chansons les plus populaires"""
+        """Récupère les chansons les plus populaires - Version optimisée mémoire"""
         with self.driver.session() as session:
+            # Requête optimisée pour éviter les problèmes de mémoire
             query = """
             MATCH (t:Track)
             OPTIONAL MATCH (a:Artist)-[:PERFORMS]->(t)
-            OPTIONAL MATCH (t)-[:BELONGS_TO]->(al:Album)
             OPTIONAL MATCH (t)-[:HAS_GENRE]->(g:Genre)
             
-            RETURN t,
-                   collect(DISTINCT a.name) as artists,
-                   al.name as album,
-                   g.name as genre
+            WITH t, 
+                 collect(DISTINCT a.name)[..2] as artists_limited,  // Limiter à 2 artistes
+                 g.name as genre
+            
+            RETURN {
+                id: t.id,
+                name: t.name,
+                popularity: t.popularity,
+                energy: t.energy,
+                danceability: t.danceability,
+                valence: t.valence
+            } as track,
+            artists_limited as artists,
+            genre
             ORDER BY t.popularity DESC
             LIMIT $limit
             """
@@ -523,10 +564,43 @@ class SpotifyBackend:
             
             songs = []
             for record in result:
-                track = dict(record['t'])
-                track['artists'] = record['artists']
-                track['album'] = record['album']
+                track = dict(record['track'])
+                track['artists'] = record['artists'] or []
                 track['genre'] = record['genre']
                 songs.append(track)
             
             return songs
+        
+    def get_quick_stats(self) -> Dict[str, Any]:
+        """Statistiques rapides avec requêtes optimisées pour éviter les problèmes de mémoire"""
+        with self.driver.session() as session:
+            query = """
+            CALL () {
+                MATCH (t:Track) RETURN count(t) as total_tracks
+            }
+            CALL () {
+                MATCH (g:Genre) RETURN count(g) as total_genres
+            }
+            CALL () {
+                MATCH (a:Artist) RETURN count(a) as total_artists
+            }
+            RETURN total_tracks, total_genres, total_artists
+            """
+            
+            result = session.run(query)
+            record = result.single()
+            if record:
+                return {
+                    'total_tracks': record['total_tracks'],
+                    'total_genres': record['total_genres'],
+                    'total_artists': record['total_artists']
+                }
+            return {}
+    
+    def get_simple_count(self) -> int:
+        """Compte simple des chansons"""
+        with self.driver.session() as session:
+            query = "MATCH (t:Track) RETURN count(t) as count"
+            result = session.run(query)
+            record = result.single()
+            return record['count'] if record else 0

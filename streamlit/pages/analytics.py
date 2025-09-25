@@ -96,7 +96,11 @@ if analysis_type == "Vue d'ensemble":
                 st.plotly_chart(fig_artists, use_container_width=True)
     
     except Exception as e:
-        st.error(f"Erreur lors du chargement de la vue d'ensemble: {e}")
+        if "MemoryPoolOutOfMemoryError" in str(e):
+            st.error("⚠️ Mémoire insuffisante dans Neo4j Aura")
+            st.info("Essayez de réduire la quantité de données ou utilisez les statistiques rapides")
+        else:
+            st.error(f"Erreur lors du chargement de la vue d'ensemble: {e}")
 
 elif analysis_type == "Statistiques par Genre":
     st.header("📈 Analyse par Genre (GROUP BY)")
@@ -182,7 +186,11 @@ elif analysis_type == "Statistiques par Genre":
             st.warning("Aucune donnée de genre disponible")
     
     except Exception as e:
-        st.error(f"Erreur lors de l'analyse par genre: {e}")
+        if "MemoryPoolOutOfMemoryError" in str(e):
+            st.error("⚠️ Mémoire insuffisante dans Neo4j Aura")
+            st.info("Analyse des genres réduite pour économiser la mémoire")
+        else:
+            st.error(f"Erreur lors de l'analyse par genre: {e}")
 
 elif analysis_type == "Statistiques par Artiste":
     st.header("🎤 Analyse par Artiste")
@@ -353,170 +361,121 @@ elif analysis_type == "Caractéristiques Audio":
     st.header("🎵 Analyse des Caractéristiques Audio")
     
     try:
-        # Récupérer un échantillon de chansons pour l'analyse
-        sample_songs = backend.get_all_songs(limit=1000)
+        # Utiliser un petit échantillon pour éviter les problèmes de mémoire
+        sample_songs = backend.get_popular_songs(limit=50)  # Réduire drastiquement
         
         if sample_songs:
             df_audio = pd.DataFrame(sample_songs)
             
-            # Sélectionner les caractéristiques audio
-            audio_features = ['danceability', 'energy', 'loudness', 'speechiness', 
-                            'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
+            # Sélectionner seulement les caractéristiques audio principales
+            audio_features = ['danceability', 'energy', 'valence']  # Réduire le nombre
             
-            # Statistiques descriptives
-            st.subheader("Statistiques descriptives")
+            # Vérifier que les colonnes existent
+            available_features = [f for f in audio_features if f in df_audio.columns]
             
-            audio_df = df_audio[audio_features].describe()
-            st.dataframe(audio_df.round(3), use_container_width=True)
-            
-            # Histogrammes
-            st.subheader("Distribution des caractéristiques audio")
-            
-            feature_to_analyze = st.selectbox(
-                "Choisir une caractéristique",
-                audio_features
-            )
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                fig_hist = px.histogram(df_audio, 
-                                      x=feature_to_analyze,
-                                      nbins=30,
-                                      title=f"Distribution de {feature_to_analyze}")
-                st.plotly_chart(fig_hist, use_container_width=True)
-            
-            with col2:
-                fig_box = px.box(df_audio,
-                               y=feature_to_analyze,
-                               title=f"Box plot de {feature_to_analyze}")
-                st.plotly_chart(fig_box, use_container_width=True)
-            
-            # Matrice de corrélation
-            st.subheader("Matrice de corrélation")
-            
-            corr_matrix = df_audio[audio_features].corr()
-            
-            fig_corr = px.imshow(corr_matrix,
-                               text_auto=True,
-                               aspect="auto",
-                               color_continuous_scale='RdBu',
-                               title="Corrélations entre caractéristiques audio")
-            
-            st.plotly_chart(fig_corr, use_container_width=True)
-        
+            if available_features:
+                # Statistiques descriptives simplifiées
+                st.subheader("Statistiques descriptives (échantillon de 50 chansons)")
+                
+                audio_df = df_audio[available_features].describe()
+                st.dataframe(audio_df.round(3), use_container_width=True)
+                
+                # Un seul graphique pour éviter la surcharge
+                st.subheader("Distribution des caractéristiques audio")
+                
+                feature_to_analyze = st.selectbox(
+                    "Choisir une caractéristique",
+                    available_features
+                )
+                
+                # Graphique simple sans plotly pour économiser la mémoire
+                st.bar_chart(df_audio[feature_to_analyze].value_counts().head(10))
+                
+                # Statistiques textuelles au lieu de matrice complexe
+                st.subheader("Analyse des caractéristiques")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Danceabilité moyenne", f"{df_audio['danceability'].mean():.2f}")
+                
+                with col2:
+                    st.metric("Énergie moyenne", f"{df_audio['energy'].mean():.2f}")
+                
+                with col3:
+                    st.metric("Valence moyenne", f"{df_audio['valence'].mean():.2f}")
+            else:
+                st.warning("Caractéristiques audio non disponibles dans les données")
         else:
-            st.warning("Aucune donnée disponible pour l'analyse audio")
+            st.warning("Aucune donnée disponible")
     
     except Exception as e:
-        st.error(f"Erreur lors de l'analyse audio: {e}")
+        if "MemoryPoolOutOfMemoryError" in str(e):
+            st.error("⚠️ Mémoire insuffisante dans Neo4j Aura")
+            st.info("Analyse audio désactivée pour économiser la mémoire")
+        else:
+            st.error(f"Erreur lors de l'analyse audio: {e}")
 
 elif analysis_type == "Corrélations":
-    st.header("📊 Analyse des Corrélations Avancées")
+    st.header("📊 Analyse des Corrélations Simplifiée")
     
     try:
-        # Récupérer les données
-        songs_data = backend.get_all_songs(limit=2000)
+        # Utiliser un échantillon très réduit pour éviter les problèmes de mémoire
+        songs_data = backend.get_popular_songs(limit=30)  # Très réduit
         
         if songs_data:
             df = pd.DataFrame(songs_data)
             
-            # Sélectionner les variables numériques
-            numeric_cols = ['popularity', 'duration_ms', 'danceability', 'energy', 
-                          'key', 'loudness', 'speechiness', 'acousticness', 
-                          'instrumentalness', 'liveness', 'valence', 'tempo', 'time_signature']
+            # Sélectionner seulement les variables principales
+            numeric_cols = ['popularity', 'danceability', 'energy', 'valence']
             
-            numeric_data = df[numeric_cols].select_dtypes(include=[float, int])
+            # Vérifier que les colonnes existent
+            available_cols = [col for col in numeric_cols if col in df.columns]
             
-            # Analyse par paires de variables
-            st.subheader("Analyse par paires")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                var1 = st.selectbox("Variable X", numeric_cols, index=0)
-            
-            with col2:
-                var2 = st.selectbox("Variable Y", numeric_cols, index=1)
-            
-            if var1 != var2:
-                fig_scatter = px.scatter(df,
-                                       x=var1,
-                                       y=var2,
-                                       color='genre' if 'genre' in df.columns else None,
-                                       title=f"Relation entre {var1} et {var2}")
+            if len(available_cols) >= 2:
+                numeric_data = df[available_cols]
                 
-                # Ajouter ligne de tendance
-                fig_scatter.update_traces(opacity=0.6)
-                st.plotly_chart(fig_scatter, use_container_width=True)
+                st.subheader("Matrice de corrélation simplifiée")
                 
-                # Calculer la corrélation
-                correlation = numeric_data[var1].corr(numeric_data[var2])
+                # Calculer la corrélation de manière simple
+                corr_results = []
+                for i, col1 in enumerate(available_cols):
+                    for j, col2 in enumerate(available_cols):
+                        if i < j:  # Éviter les doublons
+                            try:
+                                corr_val = df[col1].corr(df[col2])
+                                if not pd.isna(corr_val):
+                                    corr_results.append({
+                                        'Variable 1': col1,
+                                        'Variable 2': col2,
+                                        'Corrélation': round(corr_val, 3)
+                                    })
+                            except:
+                                continue
                 
-                if abs(correlation) > 0.7:
-                    level = "Très forte"
-                    color = "red"
-                elif abs(correlation) > 0.5:
-                    level = "Forte"
-                    color = "orange"
-                elif abs(correlation) > 0.3:
-                    level = "Modérée"
-                    color = "yellow"
+                if corr_results:
+                    corr_df = pd.DataFrame(corr_results)
+                    corr_df = corr_df.sort_values('Corrélation', key=abs, ascending=False)
+                    
+                    st.dataframe(corr_df, use_container_width=True, hide_index=True)
+                    
+                    # Affichage textuel des corrélations les plus fortes
+                    if len(corr_results) > 0:
+                        strongest = corr_results[0]
+                        st.info(f"🔗 Corrélation la plus forte: **{strongest['Variable 1']}** ↔ **{strongest['Variable 2']}** ({strongest['Corrélation']})")
                 else:
-                    level = "Faible"
-                    color = "green"
-                
-                st.markdown(f"**Corrélation:** ::{color}[{correlation:.3f}] ({level})")
-            
-            # Heatmap complète
-            st.subheader("Matrice de corrélation complète")
-            
-            corr_full = numeric_data.corr()
-            
-            fig_heatmap = px.imshow(corr_full,
-                                  text_auto=True,
-                                  aspect="auto",
-                                  color_continuous_scale='RdBu',
-                                  color_continuous_midpoint=0,
-                                  title="Matrice de corrélation complète")
-            
-            fig_heatmap.update_layout(width=800, height=800)
-            st.plotly_chart(fig_heatmap, use_container_width=True)
-            
-            # Top corrélations
-            st.subheader("Top corrélations")
-            
-            # Créer une liste des corrélations triées
-            corr_pairs = []
-            for i in range(len(corr_full.columns)):
-                for j in range(i+1, len(corr_full.columns)):
-                    var_i = corr_full.columns[i]
-                    var_j = corr_full.columns[j]
-                    corr_val = corr_full.iloc[i, j]
-                    corr_pairs.append((var_i, var_j, corr_val))
-            
-            # Trier par valeur absolue de corrélation
-            corr_pairs.sort(key=lambda x: abs(x[2]), reverse=True)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**Corrélations positives les plus fortes:**")
-                positive_corr = [x for x in corr_pairs if x[2] > 0][:10]
-                for var1, var2, corr in positive_corr:
-                    st.write(f"{var1} ↔ {var2}: **{corr:.3f}**")
-            
-            with col2:
-                st.write("**Corrélations négatives les plus fortes:**")
-                negative_corr = [x for x in corr_pairs if x[2] < 0][:10]
-                for var1, var2, corr in negative_corr:
-                    st.write(f"{var1} ↔ {var2}: **{corr:.3f}**")
-        
+                    st.warning("Impossible de calculer les corrélations")
+            else:
+                st.warning("Données insuffisantes pour l'analyse de corrélation")
         else:
-            st.warning("Données insuffisantes pour l'analyse de corrélation")
+            st.warning("Aucune donnée disponible")
     
     except Exception as e:
-        st.error(f"Erreur lors de l'analyse de corrélation: {e}")
+        if "MemoryPoolOutOfMemoryError" in str(e):
+            st.error("⚠️ Mémoire insuffisante dans Neo4j Aura")
+            st.info("Analyse de corrélation désactivée pour économiser la mémoire")
+        else:
+            st.error(f"Erreur lors de l'analyse de corrélation: {e}")
 
 # Bouton de retour
 if st.button("← Retour au menu principal"):

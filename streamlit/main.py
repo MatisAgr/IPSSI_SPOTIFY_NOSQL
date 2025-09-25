@@ -38,28 +38,26 @@ except Exception as e:
     st.stop()
 
 # Sidebar avec navigation
-st.sidebar.title("🎵 SPOTIFY DATASET")
 st.sidebar.markdown("---")
 
 # Statistiques rapides dans la sidebar
 try:
     with st.sidebar.expander("📊 Statistiques rapides", expanded=True):
-        genre_stats = backend.get_genre_statistics()
-        artist_stats = backend.get_artist_statistics()
+        # Utiliser une requête plus légère pour les statistiques de base
+        quick_stats = backend.get_quick_stats()
         
-        if genre_stats and artist_stats:
-            total_tracks = sum(stat['track_count'] for stat in genre_stats)
-            total_genres = len(genre_stats)
-            total_artists = len(artist_stats)
-            
-            st.metric("Chansons", f"{total_tracks:,}")
-            st.metric("Genres", total_genres)
-            st.metric("Artistes", total_artists)
+        if quick_stats:
+            st.metric("Chansons", f"{quick_stats.get('total_tracks', 0):,}")
+            st.metric("Genres", quick_stats.get('total_genres', 0))
+            st.metric("Artistes", quick_stats.get('total_artists', 0))
         else:
             st.info("Base de données vide")
             
 except Exception as e:
-    st.sidebar.error("Erreur statistiques")
+    if "MemoryPoolOutOfMemoryError" in str(e):
+        st.sidebar.warning("⚠️ Mémoire limitée - Stats réduites")
+    else:
+        st.sidebar.error("Erreur statistiques")
 
 st.sidebar.markdown("---")
 
@@ -123,59 +121,58 @@ st.subheader("📋 Aperçu des données récentes")
 
 try:
     with st.spinner("Chargement des données..."):
-        # Récupérer les chansons les plus populaires
-        popular_songs = backend.get_popular_songs(limit=10)
+        # Récupérer moins de chansons pour éviter les problèmes de mémoire
+        popular_songs = backend.get_popular_songs(limit=5)
         
     if popular_songs:
         import pandas as pd
         
-        df_preview = pd.DataFrame(popular_songs)
-        
-        # Préparer l'affichage
+        # Préparer l'affichage avec moins de colonnes
         display_data = []
         for song in popular_songs:
+            # Limiter les informations affichées
+            artists_str = '; '.join(song['artists'][:2])  # Max 2 artistes
+            if len(song['artists']) > 2:
+                artists_str += f" (+{len(song['artists'])-2} autres)"
+                
             display_data.append({
-                'Titre': song['name'],
-                'Artistes': '; '.join(song['artists']),
+                'Titre': song['name'][:30] + ('...' if len(song['name']) > 30 else ''),
+                'Artistes': artists_str,
                 'Genre': song.get('genre', 'N/A'),
-                'Popularité': song['popularity'],
-                'Énergie': f"{song.get('energy', 0):.2f}",
-                'Danceabilité': f"{song.get('danceability', 0):.2f}"
+                'Popularité': song['popularity']
             })
         
         df_display = pd.DataFrame(display_data)
         st.dataframe(df_display, use_container_width=True, hide_index=True)
         
-        # Graphique rapide
-        col1, col2 = st.columns(2)
+        # Graphique simple
+        st.subheader("📈 Analyse rapide")
         
-        with col1:
-            # Distribution par genre des top songs
-            genre_counts = {}
-            for song in popular_songs:
-                genre = song.get('genre', 'Inconnu')
+        # Distribution par genre des top songs (simplifié)
+        genre_counts = {}
+        for song in popular_songs:
+            genre = song.get('genre', 'Inconnu')
+            if genre:  # Éviter les genres None
                 genre_counts[genre] = genre_counts.get(genre, 0) + 1
-            
-            if genre_counts:
-                import plotly.express as px
-                fig = px.pie(
-                    values=list(genre_counts.values()),
-                    names=list(genre_counts.keys()),
-                    title="Répartition par genre (Top 10)"
-                )
-                st.plotly_chart(fig, use_container_width=True)
         
-        with col2:
-            # Graphique popularité vs énergie
-            fig2 = px.scatter(
-                df_preview,
-                x='energy',
-                y='popularity',
-                size='danceability',
-                hover_name='name',
-                title="Popularité vs Énergie"
-            )
-            st.plotly_chart(fig2, use_container_width=True)
+        if genre_counts:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Répartition par genre (Top 5)**")
+                for genre, count in genre_counts.items():
+                    percentage = (count / len(popular_songs)) * 100
+                    st.write(f"• {genre}: {count} ({percentage:.1f}%)")
+            
+            with col2:
+                # Graphique simple de popularité
+                popularity_data = [song['popularity'] for song in popular_songs]
+                avg_popularity = sum(popularity_data) / len(popularity_data)
+                
+                st.write("**Statistiques de popularité**")
+                st.write(f"• Moyenne: {avg_popularity:.1f}")
+                st.write(f"• Maximum: {max(popularity_data)}")
+                st.write(f"• Minimum: {min(popularity_data)}")
     
     else:
         st.info("Aucune donnée à afficher. Commencez par ajouter des chansons!")
@@ -184,7 +181,24 @@ try:
             st.info("Utilisez les scripts d'import dans le dossier 'script' pour charger les données depuis CSV")
 
 except Exception as e:
-    st.error(f"Erreur lors du chargement de l'aperçu: {e}")
+    if "MemoryPoolOutOfMemoryError" in str(e):
+        st.error("⚠️ Mémoire insuffisante dans Neo4j Aura")
+        st.info("""
+        **Solutions possibles:**
+        1. Réduire la quantité de données dans la base
+        2. Optimiser les requêtes
+        3. Passer à un plan Neo4j Aura avec plus de mémoire
+        """)
+        
+        # Affichage minimal en cas d'erreur mémoire
+        try:
+            count_result = backend.get_simple_count()
+            if count_result:
+                st.info(f"Base de données contient environ {count_result} chansons")
+        except:
+            st.info("Impossible d'obtenir le nombre de chansons")
+    else:
+        st.error(f"Erreur lors du chargement de l'aperçu: {e}")
 
 # Footer
 st.markdown("---")
