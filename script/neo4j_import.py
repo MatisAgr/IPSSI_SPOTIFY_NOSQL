@@ -6,8 +6,7 @@ Version haute performance pour gros datasets
 import pandas as pd
 from neo4j import GraphDatabase
 import os
-from typing import List, Dict
-import ast
+from typing import List
 from dotenv import load_dotenv
 import time
 from tqdm import tqdm
@@ -54,7 +53,7 @@ class SpotifyUltraFastImporter:
 
     def import_all_data_ultra_fast(self, df: pd.DataFrame):
         """Import par chunks pour éviter les timeouts"""
-        chunk_size = 10000  # Plus petit pour éviter timeout
+        chunk_size = 10000  # Plus petit pour éviter timeout (réseau ipssi)
         total_chunks = (len(df) + chunk_size - 1) // chunk_size
         
         print(f"--- Import par chunks de {chunk_size:,} lignes ({total_chunks} chunks)")
