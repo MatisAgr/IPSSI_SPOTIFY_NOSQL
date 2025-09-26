@@ -140,8 +140,7 @@ elif analysis_type == "Statistiques par Genre":
             df_display = df_genres.copy()
             df_display = df_display.round(2)
             df_display.columns = [
-                'Genre', 'Nb Chansons', 'Pop. Moy.', 'Énergie Moy.', 
-                'Dance. Moy.', 'Valence Moy.', 'Pop. Min', 'Pop. Max'
+                'Genre', 'Nb Chansons', 'Pop. Moy.', 'Énergie Moy.', 'Dance. Moy.'
             ]
             
             st.dataframe(df_display, use_container_width=True, hide_index=True)
@@ -218,12 +217,12 @@ elif analysis_type == "Statistiques par Artiste":
                          f"{most_popular['avg_popularity']:.1f}")
             
             with col3:
-                most_followers = df_artists.dropna(subset=['followers'])
-                if not most_followers.empty:
-                    top_followers = most_followers.loc[most_followers['followers'].idxmax()]
-                    st.metric("Plus de followers", 
-                             top_followers['artist'],
-                             f"{top_followers['followers']:,}")
+                # Remplacer followers par une métrique basée sur les données disponibles
+                if len(df_artists) > 0:
+                    total_tracks = df_artists['track_count'].sum()
+                    st.metric("Total chansons DB", 
+                             f"{total_tracks:,}",
+                             f"{len(df_artists)} artistes")
             
             # Top artistes
             st.subheader("Top 20 artistes par nombre de chansons")

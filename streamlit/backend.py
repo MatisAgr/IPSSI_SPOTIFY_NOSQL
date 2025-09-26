@@ -41,6 +41,47 @@ class SpotifyBackend:
         except Exception:
             return False
     
+    def debug_search(self, search_term: str) -> Dict[str, Any]:
+        """Méthode de debug pour tester la recherche"""
+        with self.driver.session() as session:
+            # Test 1: Compter les tracks totales
+            count_result = session.run("MATCH (t:Track) RETURN count(t) as total")
+            total_tracks = count_result.single()["total"]
+            
+            # Test 2: Recherche exacte par nom de track
+            name_search = session.run(
+                "MATCH (t:Track) WHERE toLower(t.name) CONTAINS toLower($search_term) RETURN t.name as name LIMIT 3",
+                search_term=search_term
+            )
+            matching_tracks = [record["name"] for record in name_search]
+            
+            # Test 3: Recherche par artiste
+            artist_search = session.run(
+                "MATCH (a:Artist)-[:PERFORMS]->(t:Track) WHERE toLower(a.name) CONTAINS toLower($search_term) RETURN t.name as track, a.name as artist LIMIT 3",
+                search_term=search_term
+            )
+            matching_artists = [{"track": record["track"], "artist": record["artist"]} for record in artist_search]
+            
+            # Test 4: Recherche par genre
+            genre_search = session.run(
+                "MATCH (g:Genre)<-[:HAS_GENRE]-(t:Track) WHERE toLower(g.name) CONTAINS toLower($search_term) RETURN t.name as track, g.name as genre LIMIT 3",
+                search_term=search_term
+            )
+            matching_genres = [{"track": record["track"], "genre": record["genre"]} for record in genre_search]
+            
+            # Test 5: Quelques exemples aléatoires de tracks pour référence
+            examples = session.run("MATCH (t:Track) RETURN t.name as name ORDER BY rand() LIMIT 3")
+            random_tracks = [record["name"] for record in examples]
+            
+            return {
+                "search_term": search_term,
+                "total_tracks": total_tracks,
+                "matching_tracks_by_name": matching_tracks,
+                "matching_by_artist": matching_artists,
+                "matching_by_genre": matching_genres,
+                "random_tracks_for_reference": random_tracks
+            }
+    
     # ==================== CREATE OPERATIONS ====================
     
     def create_song(self, song_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -193,21 +234,27 @@ class SpotifyBackend:
         Returns:
             Liste des chansons trouvées avec leurs détails
         """
+        # Vérification de sécurité
+        if not search_term or len(search_term.strip()) < 1:
+            print("DEBUG: search_term vide ou trop court")
+            return []
+        
+        search_term = search_term.strip()
+        
         # Forcer une limite basse pour éviter les problèmes de mémoire
         safe_limit = min(limit, 25)
         
         with self.driver.session() as session:
+            # Version ultra-simple pour debug
             cypher_query = """
             MATCH (t:Track)
+            WHERE toLower(t.name) CONTAINS toLower($search_term)
+            
             OPTIONAL MATCH (a:Artist)-[:PERFORMS]->(t)
             OPTIONAL MATCH (t)-[:HAS_GENRE]->(g:Genre)
             
-            WHERE toLower(t.name) CONTAINS toLower($search_term)
-               OR toLower(a.name) CONTAINS toLower($search_term)
-               OR toLower(g.name) CONTAINS toLower($search_term)
-            
             WITH t, 
-                 collect(DISTINCT a.name)[..2] as artists_limited,  // Max 2 artistes
+                 collect(DISTINCT a.name)[..2] as artists_limited,
                  g.name as genre
             
             RETURN {
@@ -223,6 +270,9 @@ class SpotifyBackend:
             LIMIT $limit
             """
             
+            # Debug: vérifier les paramètres avant exécution
+            print(f"DEBUG AVANT REQUETE: search_term='{search_term}', safe_limit={safe_limit}")
+            
             result = session.run(cypher_query, search_term=search_term, limit=safe_limit)
             
             songs = []
@@ -230,7 +280,11 @@ class SpotifyBackend:
                 track = dict(record['track'])
                 track['artists'] = record['artists'] or []
                 track['genre'] = record['genre']
+                # Debug: afficher chaque résultat trouvé
+                print(f"DEBUG RESULTAT: '{track.get('name', 'N/A')}' contient '{search_term}'?")
                 songs.append(track)
+            
+            print(f"DEBUG FINAL: search_term='{search_term}', results_count={len(songs)}")
             
             return songs
     
