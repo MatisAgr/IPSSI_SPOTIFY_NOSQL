@@ -42,15 +42,7 @@ if search_type == "Recherche générale":
     
     # Déclenchement de la recherche soit par le bouton, soit par saisie de texte
     if search_query and (search_button or len(search_query) > 2):
-        # Debug: tester la recherche
-        if st.button("🐛 Debug", key="debug_btn"):
-            debug_info = backend.debug_search(search_query)
-            st.json(debug_info)
-        
         with st.spinner("Recherche en cours..."):
-            # Debug: afficher le terme recherché et ses détails
-            st.info(f"Recherche pour: '{search_query}' (longueur: {len(search_query)}, type: {type(search_query)})")
-            
             try:
                 # Limiter encore plus pour éviter les problèmes de mémoire
                 results = backend.search_songs(search_query, limit=15)
